@@ -18,7 +18,7 @@ class vent_data:
     def __init__(self):
         self.demand=None
         self.states=None;
-        self.scenarios=None
+        self.scenarios={}
         self.penalty=None
         self.inventory={}
         self.stages=None
@@ -92,15 +92,16 @@ class vent_data:
         data=self.read_inv_data()
         weekly_data=self.weekly_aggregation(data);
         trimmed_data=self.filter_data(weekly_data);
-        numNodes=10;
+        numNodes=45;
         self.demand=self.generate_demand_data(trimmed_data,numNodes)
         self.states=list(trimmed_data.location_name.unique()) #only high demand states
-        self.scenarios=[i for i in range(1,numNodes+1)]
         self.penalty=60000
         #we consider each state has 800 ventilators to start with
         for s in self.states:
-            self.inventory[s]=800
+            self.inventory[s]=1000
         self.stages=[i for i in range(1,len(trimmed_data.date.unique())+1)]
+        for t in self.stages:            
+            self.scenarios[t]=[i for i in range(1,numNodes+1)]
         #generating random data for distance
         for s1 in self.states:
             for s2 in self.states:
