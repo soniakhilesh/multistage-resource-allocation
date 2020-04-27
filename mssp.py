@@ -11,7 +11,8 @@ from gurobipy import Model, GRB
 import numpy as np
 import matplotlib.pyplot as plt
 class mssp:
-    def __init__(self,data):
+    def __init__(self,data,maxiter):
+        self.maxiter=maxiter;
         self.states=data.states; #list of string
         self.distance=data.distance; #dictionary, eg D={('Wisconsin,Newyork'):2300}
         self.inventory=data.inventory;#initial inventory, eg I={'Wisconsin':24}
@@ -30,6 +31,17 @@ class mssp:
         self.rho={};
         self.fwdObjVal={};
         self.costFwdPass={};
+        self.paths={}; #storing paths generated randomly
+        self.piObjVals={};
+        self.lb={}; 
+        self.ub={};
+        self.PI=0; #average perfect information cost
+        self.xSol={}; #sddp x solution
+        self.uSol={}; #sddp u solution
+        self.scenObjVal={}; #storing cost after fixing state vars from sddp solution
+        self.evpi={}; #storing evpi for each scenario
+
+        
         
     def model(self):
         m=Model()
@@ -72,6 +84,11 @@ class mssp:
             self.fwd_model[t].update()
             #optimize
             self.fwd_model[t].optimize()
+            #store current solutions
+            for s1 in self.states:
+                for s2 in self.states:
+                    self.xSol[t,s1,s2]=round(self.fwd_model[t].getVarByName('vent-flow[{},{}]'.format(s1,s2)).x,2)
+                self.uSol[t,s1]=round(self.fwd_model[t].getVarByName('vent-avail[{}]'.format(s1)).x,2)
             self.fwdObjVal[(iterNum,t)]=self.fwd_model[t].objVal;
             #store solution vals
             for s in self.states:                
@@ -121,6 +138,7 @@ class mssp:
             samplePath={} #storing sample path
             for i in self.stages:
                 samplePath[i]=np.random.randint(1,len(self.scenarios[i]))
+            self.paths[iterNum]=samplePath;
             self.forward_pass(samplePath,iterNum)
             #find bounds
             lb=self.fwdObjVal[iterNum,1];
@@ -128,22 +146,113 @@ class mssp:
             for t in self.stages:
                 costfwd+=self.fwdObjVal[iterNum,t]-self.fwd_model[t].getVarByName('theta').x;
             self.costFwdPass[iterNum]=costfwd;
-            'work on upper bound'
             ub=(1/iterNum)*sum(self.costFwdPass[iteration] for iteration in range(1,iterNum+1))
             print(iterNum)
             print('Lower Bound {}'.format(lb),'Upper Bound {}'.format(ub)) 
+            self.lb[iterNum]=lb;
+            self.ub[iterNum]=ub;
             #test convergence criterion
             if iterNum!=1:
-                if abs(ub-lb)<epsilon or iterNum==100:   
+                if abs(ub-lb)<epsilon or iterNum==self.maxiter:   
                     print(ub/lb)
                     break;
             #BACKWARD
             self.backward_pass(iterNum)
-        'Read up and work on convergence criterion'
+
+
+
+    def perfect_info(self,path):
+        piModel=Model()
+        '''don't add cuts in this function, just build initial model
+        time/scenario index not needed
+        change rhs of constraints (flow_balance and demand_balance) to update for respective stage and scenario while executing'''
+        #objective sense
+        piModel.modelSense=GRB.MINIMIZE;    
+        #define DVs
+        x=piModel.addVars(self.stages,self.states,self.states,lb=0,obj=self.distance,name='vent-flow'); #stage
+        u=piModel.addVars(self.stages,self.states,lb=0,name='vent-avail'); #stage
+        y=piModel.addVars(self.stages,self.states,lb=0,name='vent-unused'); #recourse
+        z=piModel.addVars(self.stages,self.states,lb=0,obj=self.penalty,name='vent-shortage'); #recourse
+        #add constraints
+        #flow:
+        piModel.addConstrs((u[t+1,s]-x.sum(t+1,'*',s)+x.sum(t+1,s,'*')-u[t,s]==0 for s in self.states for t in self.stages[:-1]),name="flow-balance")
+        #flow: inventory con
+        piModel.addConstrs((u[1,s]==self.prevStageVent[0][s] for s in self.states),name="flow-balance-inv")
+        #demand
+        piModel.addConstrs((z[t,s]+u[t,s]-y[t,s]==self.demand[t,path[t],s] for s in self.states for t in self.stages),name="demand-balance")
+        #max-flow
+        piModel.addConstrs((x.sum(t,s,'*')-y[t,s]<=0 for s in self.states for t in self.stages),name="max-flow") 
+        piModel.setParam(GRB.Param.LogToConsole,0)
+        piModel.update()
+        return piModel
         
+    def solvePI(self):
+        samplePath={} #storing sample path
+        numIterPI=0
+        while True:
+            numIterPI+=1;
+            samplePath=self.paths[numIterPI]
+            piModel=self.perfect_info(samplePath);
+            #optimize
+            piModel.optimize()
+            self.piObjVals[numIterPI]=piModel.objVal
+            if numIterPI==self.maxiter:
+                print('Mean PI value is ',np.mean(list(self.piObjVals.values())))
+                self.PI=np.mean(list(self.piObjVals.values()))
+                break
+ 
+    def plotBoundsSDDP(self):
+        plt.figure(figsize=(14,10),dpi=80)
+        plt.plot(list(self.lb.keys()),list(self.lb.values()),label='Lower Bound');
+        plt.plot(list(self.ub.keys()),list(self.ub.values()),label='Upper Bound');
+        #plt.plot(list(self.ub.keys()),[self.PI for i in list(self.ub.keys())],label='Perfect Info');    
+        plt.legend(fontsize=16)
+        plt.xlabel('Iteration',fontsize=16)
+        plt.ylabel('Objective Value',fontsize=16)
+        plt.title('SDDP convergence',fontsize=16)
+        plt.savefig('sddp-convergence.png')
+
+    def cal_EVPI(self):
+        #call model and fix first stage decisions
+        evpiPercentage={}
+        for scenNum in list(self.paths.keys()):
+            path=self.paths[scenNum]
+            scenModel=Model()
+            #objective sense
+            scenModel.modelSense=GRB.MINIMIZE;    
+            #define DVs
+            x=scenModel.addVars(self.stages,self.states,self.states,lb=0,obj=self.distance,name='vent-flow'); #stage
+            u=scenModel.addVars(self.stages,self.states,lb=0,name='vent-avail'); #stage
+            y=scenModel.addVars(self.stages,self.states,lb=0,name='vent-unused'); #recourse
+            z=scenModel.addVars(self.stages,self.states,lb=0,obj=self.penalty,name='vent-shortage'); #recourse
+            #add constraints
+            #flow:
+            #scenModel.addConstrs((u[t+1,s]-x.sum(t+1,'*',s)+x.sum(t+1,s,'*')-u[t,s]==0 for s in self.states for t in self.stages[:-1]),name="flow-balance")
+            #flow: inventory con
+            #scenModel.addConstrs((u[1,s]==self.prevStageVent[0][s] for s in self.states),name="flow-balance-inv")
+            #demand
+            scenModel.addConstrs((z[t,s]+u[t,s]-y[t,s]==self.demand[t,path[t],s] for s in self.states for t in self.stages),name="demand-balance")
+            #max-flow
+            scenModel.addConstrs((x.sum(t,s,'*')-y[t,s]<=0 for s in self.states for t in self.stages),name="max-flow") 
+            scenModel.setParam(GRB.Param.LogToConsole,0)
+            scenModel.update()
+            'fix first stage decision vars'
+            scenModel.addConstrs((x[t,s1,s2]==self.xSol[t,s1,s2] for t in self.stages for s1 in self.states for s2 in self.states),name='fix-x')
+            scenModel.addConstrs((u[t,s]==self.uSol[t,s] for t in self.stages for s in self.states),name='fix-u')
+            scenModel.update()
+            scenModel.optimize()
+            self.scenObjVal[scenNum]=scenModel.objVal
+            self.evpi[scenNum]=self.scenObjVal[scenNum]-self.piObjVals[scenNum]
+            evpiPercentage[scenNum]=100*self.evpi[scenNum]/self.scenObjVal[scenNum];
+        print('Mean EVPI is {}'.format(np.mean(list(self.evpi.values()))))
+        print('Mean EVPI Percentage is {}'.format(np.mean(list(evpiPercentage.values()))))
         
+            
 if __name__=='__main__':
     data=vent_data()
     data.gen_data()
-    model=mssp(data);
+    model=mssp(data,200);
     model.execute_sddp()
+    model.solvePI()
+    #model.plotBoundsSDDP()
+    model.cal_EVPI()

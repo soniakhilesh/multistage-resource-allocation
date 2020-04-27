@@ -53,7 +53,24 @@ class vent_data:
             plt.gca().axes.xaxis.set_ticks([])
             plt.savefig('demand-data.png')
         return data_ven
-    
+   
+    def plotDev(self,state):
+        data=self.read_inv_data(plot=False);
+        weekly_data=self.weekly_aggregation(data);
+        plt.figure(figsize=(14,10),dpi=80)
+        meanInv=weekly_data.loc[weekly_data['location_name'] == state][['InvVen_mean']]
+        maxInv=weekly_data.loc[weekly_data['location_name'] == state][['InvVen_upper']]
+        minInv=weekly_data.loc[weekly_data['location_name'] == state][['InvVen_lower']]
+        plt.plot(weekly_data.date.unique(),meanInv,label='Mean')
+        plt.plot(weekly_data.date.unique(),maxInv,label='Max')
+        plt.plot(weekly_data.date.unique(),minInv,label='Min')
+        plt.legend(fontsize=16)
+        plt.xlabel('Date',fontsize=16)
+        plt.ylabel('Number of additional ventilators required',fontsize=16)
+        plt.title('Demand deviation '+state+': Jan 1-August 4,2020',fontsize=16)
+        #plt.gca().axes.xaxis.set_ticks([])
+        plt.savefig(state+'-dev.png')            
+        
     def weekly_aggregation(self,data_ven):
         data_ven['date'] = data_ven['date'].astype('datetime64[ns]')    
         #convert daily data to weekly
@@ -88,6 +105,8 @@ class vent_data:
                     demand[(t,n,s)]=max(0,round(float(state_data.InvVen_mean)+u*(float(state_data.InvVen_upper)-float(state_data.InvVen_mean))-l*(float(state_data.InvVen_mean)-float(state_data.InvVen_lower)),1))
         return demand
     
+        
+        
     def data(self):
         data=self.read_inv_data()
         weekly_data=self.weekly_aggregation(data);
