@@ -1,12 +1,12 @@
 \documentclass[11pt,letterpaper]{article}
-\usepackage{fullpage}
+%\usepackage{fullpage}
 \usepackage[top=2cm, bottom=4.5cm, left=2.5cm, right=2.5cm]{geometry}
 \usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
-\usepackage{lastpage}
+%\usepackage{lastpage}
 \usepackage{enumerate}
 \usepackage{subcaption}
-\usepackage{fancyhdr}
-\usepackage{mathrsfs}
+%\usepackage{fancyhdr}
+%\usepackage{mathrsfs}
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{listings}
@@ -41,55 +41,220 @@
 % Edit these as appropriate
 \newcommand\course{ISyE 719}
 \newcommand\hwnumber{3}                  % <-- homework number
-\newcommand\NetIDa{Akhilesh Soni}           % <-- NetID of person #1
-\newcommand\NetIDb{Bhumesh Kumar}           % <-- NetID of person #2 (Comment this line out for problem sets)
+\newcommand\NetIDa{}           % <-- NetID of person #1
+\newcommand\NetIDb{}           % <-- NetID of person #2 (Comment this line out for problem sets)
 
-\pagestyle{fancyplain}
-\headheight 35pt
-\lhead{\NetIDa}
-\lhead{\NetIDa\\\NetIDb}                 % <-- Comment this line out for problem sets (make sure you are person #1)
-\chead{\textbf{\Large Project Proposal}}
-\rhead{\course \\ \today}
-\lfoot{}
-\cfoot{}
-\rfoot{\small\thepage}
-\headsep 1.5em
+%\pagestyle{fancyplain}
+%\headheight 35pt
+%\lhead{\NetIDa}
+%\lhead{\NetIDa\\\NetIDb}                 % <-- Comment this line out for problem sets (make sure you are person #1)
+%\chead{\textbf{\Large \course \text{ }Project Submission}}
+%\rhead{\course \\ \today}
+%\lfoot{}
+%\cfoot{}
+%\rfoot{\small\thepage}
+%\headsep 1.5em
 
-% Added by Zach
-\newcommand{\R}{\mathbb{R}}
-\newcommand{\N}{\mathbb{N}}
-\newcommand{\Q}{\mathbb{Q}}
-\newcommand{\E}{\mathbb{E}}
-\renewcommand{\P}{\mathbb{P}}
-\DeclareMathOperator*{\argmax}{arg\,max}
-\DeclareMathOperator*{\argmin}{arg\,min}
-\def\st{\text{s.t.~}}
 
 \begin{document}
 
 \begin{comment}
-Deadline 1: March 29, a brief write up\\
-Deadline 2: April 4/5- A slightly concrete proposal\\
-Deadline 3: April 6-Write up each other's parts. \\
-Deadline 4: April-6 Mail proposal by midnight . 
+% Deadline 1: March 29, a brief write up\\
+% Deadline 2: April 4/5- A slightly concrete proposal\\
+% Deadline 3: April 6-Write up each other's parts. \\
+% Deadline 4: April-6 Mail proposal by midnight . 
 
 
-Meeting Scheduled on April 6-5pm\\
-Short meeting on April 6 - 7pm. (Discuss proposal and next meeting) 
+% Meeting Scheduled on April 6-5pm\\
+% Short meeting on April 6 - 7pm. (Discuss proposal and next meeting) 
 
-\newpage
+% \href{http://www.optimization-online.org/DB_FILE/2015/08/5064.pdf}{sddp paper}\\
+% \href{https://www.ima.umn.edu/materials/2015-2016/ND8.1-12.16/25386/mssp.pdf}{shabbir}\\
+% \href{https://www.ima.umn.edu/2015-2016/ND8.1-12.16/25386}{Shabbir's Video}\\
+% \href{https://www.reuters.com/article/us-health-coronavirus-usa-ventilators/outbid-and-left-hanging-u-s-states-scramble-for-ventilators-idUSKCN21S20D}{Unreliable data}
+% \href{https://covid19.healthdata.org/united-states-of-america}{ihme data}
 \end{comment}
-\href{http://www.optimization-online.org/DB_FILE/2015/08/5064.pdf}{sddp paper}\\
-\href{https://www.ima.umn.edu/materials/2015-2016/ND8.1-12.16/25386/mssp.pdf}{shabbir}\\
-\href{https://www.ima.umn.edu/2015-2016/ND8.1-12.16/25386}{Shabbir's Video}\\
-\href{https://www.reuters.com/article/us-health-coronavirus-usa-ventilators/outbid-and-left-hanging-u-s-states-scramble-for-ventilators-idUSKCN21S20D}{Unreliable data}
-\href{https://covid19.healthdata.org/united-states-of-america}{ihme data}
-\begin{figure}
+
+\title{Stochastic Programming Approach to Temporal Resource Allocation for COVID-19 Pandemic.}
+\date{}
+\author{Akhilesh Soni, Bhumesh Kumar}
+\maketitle
+\section{Introduction}
+In this work we aim to study, implement and extend stochastic programming models and algorithms for temporal resource sharing during pandemic across a finite time horizon.  Efficient resource allocation is a fundamental problem in supply chain, manufacturing, telecommunication, military, online resource sharing, and other areas (See \href{https://apps.dtic.mil/dtic/tr/fulltext/u2/a423115.pdf}{Temporal resource Allocation}, \href{https://arxiv.org/pdf/1610.02143.pdf}{Online Resource Allocation}). The problem of sharing super-critical and scarce resources (e.g. Ventilators, testing kits) is of particular interest towards crisis management in health care for patient care as well as triage.   
+%\href{https://people.orie.cornell.edu/huseyin/publications/informs_tutorial_formatted.pdf}{Solving SP using Dynamic Prog. for Resource Allocation}. 
+
+Our project is motivated by the recent global pandemic, COVID-19; challenges USA and other economies are encountering in medicare and public health through the pandemic. For patients with underlying illnesses or of elder ages, the effects of COVID-19 on respiratory systems can be fatal (See \href{http://www.optimization-online.org/DB_FILE/2020/04/7719.pdf}{Mehrotra et al.}). The supply of Oxygen for the body may not be enough for the time patient is undergoing recovery and thus ventilators are a critical resource for ensuring patient survival. 
+
+The speed of the pandemic, ease of spread and manufacturing limitations both cost and speed make ventilators a scarce resource. This presses an impending need for efficient sharing of ventilators and other resources. Over the course of pandemic, such resource pooling can have a significant effect on reducing the number of death toll as well as the nation's economy.  
+
+Resource allocation has been classically studied in multiple fields, spanning
+\href{https://eprints.illc.uva.nl/168/}{economics},
+\href{https://dl.acm.org/doi/book/10.5555/1457343}{wireless networks},
+\href{https://link.springer.com/chapter/10.1007/978-1-349-24002-9_5}{game theory},
+\href{https://ideas.repec.org/a/eee/jrpoli/v22y1996i3p218-220.html}{finance} etc. 
+and focus on one shot allocation in deterministic, stochastic and adversarial settings. 
+The outbreak of pandemic typically follows a bell curve with each state/region of the country hitting the peak at different points of time. 
+This lends the problem a time dependent structure where in each time horizon, resource can be re-located and/or shared based on the projected need. 
+
+Optimization techniques have been explored for 
+\href{https://www.ncbi.nlm.nih.gov/pubmed/18700149}{vaccinations},
+\href{http://www2.pitt.edu/~schaefer/papers/FluShotDesign.pdf}{influenza treatments} etc. Stochastic programming and \href{https://www.sciencedirect.com/science/article/abs/pii/0025556479900828}{optimal control} are the popular paradigms to model and target these issues. \href{https://www.sciencedirect.com/science/article/pii/S1755436514000280}{Challenges} in modelling and applicability of assumptions have also been studied. 
+
+In a \href{https://pubsonline.informs.org/doi/pdf/10.1287/trsc.2017.0777}{recent paper} by Mehrotra et. al., authors solve a ventilator re-location problem using a multi period planning model. They model uncertainty in the demands which are observable only after the relocation decision has been made. Decision making lies in determining the number of ventilators that are moved from location A to location B in each time period and authors solve an extensive formulation model considering 4 possible demand scenarios. The decision maker makes a decisions for the entire planning horizon using the information that is available at the beginning of planning. 
+
+\subsection*{Problem Description}
+During the course of a pandemic, different regions of the country hit peak demand of necessary healthcare equipments like ventilators, hospital bed etc. Our focus in this work is on the ventilators and we restrict our geographical region to United States of America. We show the predicted mean demand curve for each state in Figure \ref{fig:meanDemand}. Note that we pulled the data from Institute for Health and Metrics \href{http://www.healthdata.org/covid/data-downloads}{IHME} website.Note that this data is for the number of additional ventilators required by each state i.e the unmet demand each state is expected to have.
+As each states hits it's peak demand at a different point of time, ventilators can be shared among various states if planning is done efficiently. It is difficult to predict the demand of ventilators in each state with high accuracy. Hence, a need arises for a model which can provide efficient ways for resource ventilators amidst this uncertain demand. Our work is a major extension of   
+ \href{http://www.optimization-online.org/DB_FILE/2020/04/7719.pdf}{Mehrotra et al.}. We propose a novel multi-stage stochastic program formulation for the ventilator relocation problem. We then use stochastic dual dynamic programming (SDDP) algorithm to solve the model efficiently. Note that as number of scenarios increase, solving extensive form becomes impossible.
+ \begin{figure}[h!]
     \centering
     \includegraphics[scale=0.5]{demand-data.png}
-    \caption{Caption}
-    \label{fig:my_label}
+    \caption{Mean demand curves from Jan 1-Aug 4, 2020 (Source:IHME)}
+    \label{fig:meanDemand}
 \end{figure}
+ \section{Mathematical Model}
+ In this section we provide model
+ \subsection{Modeling Assumptions}
+ \begin{itemize}
+     \item As number of ventilators is a large qualtity, we can round it of to a nearest integer. Thus we assume the number of ventilators to be continuous instead of discrete. 
+     \item We assume lead time to be zero. We consider our period length to be 1 week. 
+     \item We treat penalty of unmet demand to be a constant i.e. it doesn't vary from state to state
+     \item We assume that the demand in first period is known with certainty in each state
+ \end{itemize}
+\subsection{Notation}
+\paragraph{Sets and Parameters}
+\begin{itemize}
+    \item $S\rightarrow$ Set of states/ regions
+    \item $T \rightarrow$ Set of periods
+    \item $K \rightarrow$ Set of scenarios
+   \item $i_s\rightarrow$ Starting inventory of each state 
+   \item $p\rightarrow$ Penalty for each unit of unmet demand, (purchasing a new ventilator)
+   \item $c_{s_1,s_2}\rightarrow$ Cost of transporting a ventilator from state $s_1$ to state $s_2$
+   \item $\mu^t_s\rightarrow$ Mean demand in period t in state $s\in S$ is known
+   \item $\omega \rightarrow$ Timeseries parameter
+  \item $f^1_s\rightarrow$ Demand multiplicative factor in period 1 in state $s$
+
+\end{itemize}
+
+\paragraph{Stochastic Data}
+\begin{itemize}
+    \item $\xi^t_s \rightarrow$Random Variable, $LogN(1,0.15)$.This is used to induce uncertainty in demand and create different scenario demand.
+   \item $d^t_s\rightarrow$ Demand in period $t\ge 2$ in state $s$
+\end{itemize}
+
+\paragraph{Decision variables}
+\begin{itemize}
+    \item $x^t_{s_1,s_2}\rightarrow$Number of ventilators moved from states $s_1$ to state $s_2$ in period t-\textcolor{blue}{State Variable}
+    \item $u^t_s\rightarrow$Ventilators held by state s in period t-\textcolor{blue}{State Variable}
+    \item $f^t_s\rightarrow$Demand multiplication factor in stage t in state s-\textcolor{blue}{State Variable}
+    \item $y^t_s\rightarrow$Ventilators available in state s in period t which are not in use-\textcolor{blue}{Recourse Variable}
+    \item $z^t_s\rightarrow$Unmet demand in state s in period t-\textcolor{blue}{Recourse Variable}
+\end{itemize}
+
+\subsection{Demand Model}
+We know that demand follows the shape of bell curve as clear from Figure \ref{fig:meanDemand}. Moreover, IHME also provides possible variation in demand data i.e. min and max. We show in Figure \ref{fig:demandVariation} the minimum, maximum, and mean demand predictions by IHME for the state of New York, New Jersey, Massachusetts, and Connecticut.
+\begin{figure}[h!]
+  \centering
+  \begin{subfigure}[b]{0.45\linewidth}
+    \includegraphics[width=\linewidth]{New York-dev.png}
+    \caption{New York}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.45\linewidth}
+    \includegraphics[width=\linewidth]{New Jersey-dev.png}
+    \caption{New jersey}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.45\linewidth}
+    \includegraphics[width=\linewidth]{Massachusetts-dev.png}
+    \caption{Massachusetts}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.45\linewidth}
+    \includegraphics[width=\linewidth]{Connecticut-dev.png}
+    \caption{Connecticut}
+  \end{subfigure}
+  
+  \caption{Demand Variation with time}
+  \label{fig:demandVariation}
+\end{figure}
+\newline 
+To capture this behaviour, we use the following multiplicative auto regressive time series model. 
+\begin{align}
+d^t_{s}&=\mu^{t}_{s}*f^t_s \qquad \forall t\ge 2,s\in S\\
+f^t_s&=\omega f^{t-1}_s+(1-\omega)\xi^t_s \qquad \forall t\ge 2, s\in S\\
+&\xi^t_s\in LogN(1,0.15)\\
+&\omega\in (0,1) \text{is a fixed parameter}
+\end{align}
+Note that $\omega$ here is regression parameter and $\xi^t_s$ is the noise
+\subsection{Extensive Formulation}
+We provide an extensive model formulation in this section. Consider that we have a possible list of scenarios in set $K$ i.e. set $K$ comprised of various demand scenarios for each state across all the periods. Let demand scenario $k$ occurs with a probability of $p^k$
+\begin{align*}
+    \min & \sum_{t\in T}\sum_{s\in S}\big[\sum_{s_2 \in s, s_2\neq s} c_{s,s_2}x^t_{s,s_2}+\sum_{k\in K} p^kpz^t_{sk}\big]\\
+    \text{s.t. } & u_s^t=u_s^{t-1}+\sum_{s_2\in S,s_2\neq s}x^t_{s_2,s}-\sum_{s_2\in S, s_2\neq s}x^t_{s,s_2} \qquad \forall t\ge 2, \forall s \in S\\
+    & u_s^1=i_s \qquad \forall s\in S\\
+    %& z^{t}_s+u^t_s \ge d^{t}_s \qquad \forall t\in T,s \in S\\
+    & z^t_s+u^t_s=f^t_s\mu^t_s+y^t_{sk} \qquad \forall t \in T,s \in S, k\in K\\
+    &f^t_s=\omegaf^{t-1}_s+(1-\omega)\xi^t_{s,k} \qquad \forall s\in S, t\ge 2,k\in K \\
+    &f^1_s=d^1_s \qquad \forall s\in S\\
+    & \sum_{s_2\in S}x^t_{s,s_2}\le y^t_{sk} \qquad \forall s \in S, t\in T, k\in K\\
+    & x^t_{s_1,s_2}, u^t_s,y^t_{sk},z^t_{sk} \geq 0 \qquad s\in S, t\in T,k \in K
+\end{align*}
+\subsection{Stochastic Dual Dynamic Programming}
+As the number of scenarios increase, the extensive form model becomes intractable. Hence, in this section we propose a SDDP algorithm for this model.
+\subsection*{Forward Pass}
+In each iteration of forward pass we generate a sample path say $P_i$ which provides a random noise realization ($\xi^t_{si}$) for each states $s$ in each period $t$. We then solve the following deterministic period in each stage while using the solution from previous stage as an input.
+Thus, we solve the forward pass problem in iteration $i$
+\begin{align}
+    (x^t,u^t,y^t,z^t) \in \argmin_{x,u,y,z,\theta} & \sum_{s\in S}\big[\sum_{s_2 \in s, s_2\neq s} c_{s,s_2}x_{s,s_2}+pz_{s}\big]+\theta\\
+    \text{s.t. } & u_s=\textcolor{red}{{\hat{u}}_s^{t-1}}+\sum_{s_2\in S,s_2\neq s}x_{s_2,s}-\sum_{s_2\in S, s_2\neq s}x_{s,s_2} \qquad \forall \forall s \in S\\
+    %& u_s^1=i_s \qquad \forall s\in S\\
+    %& z^{t}_s+u^t_s \ge d^{t}_s \qquad \forall t\in T,s \in S\\
+    & z_s+u_s=\mu^{t}_{s}*f_s+y_s \qquad \forall s \in S\\
+    &f_s=\omega \textcolor{red}{\hat{f}^{t-1}_s}+(1-\omega)\xi^t_{s,\textcolor{red}{P_i}} \qquad \forall t\ge 2\\
+    & \sum_{s_2\in S}x_{s,s_2}\le y_{s} \qquad \forall s \in S\\
+    & x_{s_1,s_2}, u_s,y_s,z_s\ge 0 \\
+    & \textcolor{blue}{\theta\ge \frac1N \Big[\sum_{j'}\alpha^l_{j',t+1}+\sum_{j'}\sum_s\rho^l_{s,j',t+1}{u}_s +\omega\sum_{j'}\sum_s\gamma^l_{s,j',t+1}{f}_s \Big]} \quad \forall l=1,\dots,i-1 \tag{Benders Cut-fp}
+\end{align}
+Note that ${\hat{u}}_s^{t-1}$ and ${\hat{f}}_s^{t-1}$ are solutions from previous stage. 
+
+\subsection*{Backward Pass Pass}
+In backward pass, we start from last stage and work our way towards first stage. All scenario problems are solved each stage in backward pass i.e. we solve the following problem for each scenario ($j$).
+In stage $t+1$, we use stage solution from past stage($t$) and expected go to function approximation (approximation, $\theta$) from future($t+2$)
+\begin{align}
+    \Q^{i+1}_{j,t+1}=\min_{x,u,y,z,\theta} & \sum_{s\in S}\big[\sum_{s_2 \in s, s_2\neq s} c_{s,s_2}x_{s,s_2}+pz_{s}\big]+\theta\\
+    \text{s.t. } & u_s-\sum_{s_2\in S,s_2\neq s}x_{s_2,s}+\sum_{s_2\in S, s_2\neq s}x_{s,s_2}=\textcolor{red}{{\hat{u}}_s^{t}} \qquad \forall s \in S \tag{$\rho^i_{s,j,t+1}$}\\
+    %& u_s^1=i_s \qquad \forall s\in S\\
+    %& z^{t}_s+u^t_s \ge d^{t}_s \qquad \forall t\in T,s \in S\\
+    & z_s+u_s-y_s-\mu^{t+1}_s*f_s=0 \qquad \forall s \in S \\
+    &f_s=\omega \textcolor{red}{\hat{f}^{t}_s}+(1-\omega)\xi^{t+1}_{s,\textcolor{red}{j}} \qquad \forall s\in S \tag{$\gamma^i_{s,j,t+1}$}\\
+    & \sum_{s_2\in S}x_{s,s_2}- y_{s}\le 0 \qquad \forall s \in S \\
+    & x_{s_1,s_2}, u_s,y_s,z_s\ge 0\\
+    & \textcolor{blue}{\theta\ge \frac1N \Big[\sum_{j'}\alpha^l_{j',t+2}+\sum_{j'}\sum_s\rho^l_{s,j',t+2}{u}_s +\omega\sum_{j'}\sum_s\gamma^l_{s,j',t+2}{f}_s\Big]} \quad \forall l=1,\dots,i \tag{Benders Cut-bp}
+\end{align}
+We associate the dual variables $\rho^i_{s,j,t+1}$ and $\gamma^i_{s,j,t+1}$ with two sets of constraints as shown in abose equations.
+We then calculate $\alpha^i_{j,t+1}$ as following which is used to generate benders cut.
+\begin{align}
+    &\alpha^i_{j,t+1}=\Q^{i+1}_{j,t+1}-\sum_s\rho^i_{s,j,t+1}{\hat{u}}^t_s-\omega\sum_s\gamma^i_{s,j,t+1}{\hat{f}}^t_s
+\end{align}
+Add cut to all nodes in t:
+\begin{align}
+    \theta \ge \frac1N \Big[\sum_{j'}\alpha^i_{j',t+1}+\sum_{j'}\sum_s\rho^i_{s,j',t+1}{u}^t_s+\omega\sum_{j'}\sum_s\gamma^i_{s,j',t+1}{f}^t_s \Big]
+\end{align}
+
+\section{Computational Results}
+In this section we share computational results.
+\subsection{Data}
+We use data from \href{https://pubsonline.informs.org/doi/pdf/10.1287/trsc.2017.0777}{Mehrotra et al.}. Our data comprises of current inventory in state and federal reserves, willingness of each state to share it's resources with another state, expected arrival of new ventilators being manufactured, and varying demand scenarios for each state/regions
+
+\begin{comment}
+
+\section{Not in report}
+Anything after this point is old material. Copy paste from below and structure the report properly.
+ \section*{Meeting with Jim on April 10}
+factor in the travel time and when will be they available.Keeping track of how long have been they in use. Try SDDP maybe if demands are iid (Might be challenging). Clustering by regions maybe to reduce the size of the problem. For SDDP, d(t)=d(history)+some error function-auto regressive model. Error has some dependency. Mail challenge is figuring out how to fit the demand variable in SDDP framework. Scenario tree model not good enough because of too many states.
+Markov chain might be a good approximation for keeping track of number of infections. Growth rate can depend on time (in a deterministic manner). Julia SDDP has some implemented algorithms. Comparison of different approaches, need a simulation to compare (beyomd the scope of the project). Implementing one algorithm might be enough. Goal should be to minimize the unmet demand (expected value or some risk measures)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \subsection*{Proposed Theme}
 Stochastic Programming Approach to Temporal Resource Allocation for COVID-19 Pandemic.
 
@@ -149,9 +314,8 @@ f^t_s&=\omega f^{t-1}_s+(1-\omega)\xi^t_s \qquad \forall t\ge 2\\
 &\xi^t_s\in LogN(1,0.15)\\
 &\omega\in (0,1) \text{is a fixed parameter like 0.8}
 \end{align}
-\begin{comment}
 
-\section{Model}
+\section{Old Model}
 \paragraph{Assumptions}
 \begin{itemize}
     \item Unmet demand is equivalent to purchasing a new ventilator. We assume that we can meet any unmet demand by purchasing new ventilators.
@@ -259,7 +423,6 @@ In the formulation below, $\textcolor{red}{d^t_{s,{P_t}}}$ denotes the demand re
     & \sum_{s_2\in S}x^t_{s,s_2}\le y^t_s \qquad \forall s \in S\\
     & x^t_{s_1,s_2}, u^t_s,y^t_s,z^t_s \geq 0
 \end{align}
-\end{comment}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{New Model}
@@ -344,6 +507,7 @@ Add cut to all nodes in t:
 \end{align}
 
 
+\end{comment}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{comment}
