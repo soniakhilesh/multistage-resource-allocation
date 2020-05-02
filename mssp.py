@@ -9,6 +9,7 @@ Created on Sat Apr 18 16:30:08 2020
 from read_data import vent_data
 from gurobipy import Model, GRB
 import numpy as np
+import time
 import matplotlib.pyplot as plt
 class mssp:
     def __init__(self,data,maxiter):
@@ -31,6 +32,7 @@ class mssp:
         for i in self.stages:
             self.prevStageVent[i]={};
             self.prevStageFactor[i]={}
+        self.demands={} #key: (iterNum,stage,state)
         #cut coeffs
         self.alpha={};
         #dual vars
@@ -48,7 +50,11 @@ class mssp:
         self.uSol={}; #sddp u solution
         self.scenObjVal={}; #storing cost after fixing state vars from sddp solution
         self.evpi={}; #storing evpi for each scenario
-
+        self.mvm_x={};#mean val sol x value
+        self.mvm_u={};#mean val sol u value
+        self.mvm_z={};#mean val sol z value
+        self.mvm_obj=None; #mean val sol obj
+        self.vssScen=[];
         
         
     def model(self):
@@ -110,7 +116,8 @@ class mssp:
             for s in self.states:                
                 self.prevStageVent[t][s]=self.fwd_model[t].getVarByName("vent-avail[{}]".format(s)).x
                 self.prevStageFactor[t][s]=self.fwd_model[t].getVarByName("demand-factor-var[{}]".format(s)).x
-
+                self.demands[iterNum,t,s]=self.mean_demand[(t,s)]*self.fwd_model[t].getVarByName("demand-factor-var[{}]".format(s)).x
+                
     def backward_pass(self,iterNum):
         if iterNum==1:
             self.bwd_model={}
@@ -212,6 +219,8 @@ class mssp:
         return piModel
         
     def solvePI(self):
+        #this method isn't updated
+
         samplePath={} #storing sample path
         numIterPI=0
         while True:
@@ -238,6 +247,7 @@ class mssp:
         plt.savefig('sddp-convergence-new.png')
 
     def cal_EVPI(self):
+        #this method isn't updated
         #call model and fix first stage decisions
         evpiPercentage={}
         for scenNum in list(self.paths.keys()):
@@ -272,12 +282,71 @@ class mssp:
         print('Mean EVPI is {}'.format(np.mean(list(self.evpi.values()))))
         print('Mean EVPI Percentage is {}'.format(np.mean(list(evpiPercentage.values()))))
         
-            
+    def meanvalModel(self):
+        #consider demand to be equal to mean with no uncertainty
+        m=Model()
+        #objective sense
+        m.modelSense=GRB.MINIMIZE;    
+        #define DVs
+        x=m.addVars(self.stages,self.states,self.states,lb=0,obj=self.distance,name='vent-flow'); #stage
+        u=m.addVars([0]+self.stages,self.states,lb=0,name='vent-avail'); #stage
+        y=m.addVars(self.stages,self.states,lb=0,name='vent-unused'); #recourse
+        z=m.addVars(self.stages,self.states,lb=0,obj=self.penalty,name='vent-shortage'); #recourse
+        #f=m.addVars(self.states,lb=0,name='demand-factor-var')  
+        #m.addVar(obj=1,lb=0,name='theta')
+        #add constraints
+        m.addConstrs((u[0,s]==self.inventory[s] for s in self.states),name="flow-balance-first")
+        m.addConstrs((u[t,s]-x.sum(t,'*',s)+x.sum(t,s,'*')==u[t-1,s] for s in self.states for t in self.stages),name="flow-balance")
+        m.addConstrs((z[t,s]+u[t,s]-y[t,s]==self.mean_demand[(t,s)] for s in self.states for t in self.stages),name="demand-balance")
+        m.addConstrs((x.sum(t,s,'*')-y[t,s]<=0 for s in self.states for t in self.stages),name="max-flow") 
+        #m.addConstrs((f[s]==self.prevStageFactor[0][s] for s in self.states),name='demand-factor-con')
+        m.setParam(GRB.Param.LogToConsole,0)
+        m.update()
+        return m
+    
+    def VSS(self):
+        mvm=self.meanvalModel();
+        mvm.optimize();
+        #store mean val solutions
+        for t in self.stages:
+            for s1 in self.states:
+                for s2 in self.states:
+                    self.mvm_x[t,s1,s2]=round(mvm.getVarByName('vent-flow[{},{},{}]'.format(t,s1,s2)).x,2)
+                self.mvm_u[t,s1]=round(mvm.getVarByName('vent-avail[{},{}]'.format(t,s1)).x,2)
+                self.mvm_z[t,s1]=round(mvm.getVarByName('vent-shortage[{},{}]'.format(t,s1)).x,2)
+        self.mvm_obj=mvm.objVal;
+        #solve the model fixing first stage decisions for each demand scenario
+        for iterNum in range(1,self.maxiter+1):
+            scenModel=Model()
+            #objective sense
+            scenModel.modelSense=GRB.MINIMIZE;    
+            #define DVs
+            x=scenModel.addVars(self.stages,self.states,self.states,lb=0,obj=self.distance,name='vent-flow'); #stage
+            u=scenModel.addVars([0]+self.stages,self.states,lb=0,name='vent-avail'); #stage
+            y=scenModel.addVars(self.stages,self.states,lb=0,name='vent-unused'); #recourse
+            z=scenModel.addVars(self.stages,self.states,lb=0,obj=self.penalty,name='vent-shortage'); #recourse
+            #f=m.addVars(self.states,lb=0,name='demand-factor-var')  
+            #m.addVar(obj=1,lb=0,name='theta')
+            #add recourse constraints, fix first stage vars
+            scenModel.addConstrs((z[t,s]+u[t,s]-y[t,s]==self.demands[(iterNum,t,s)] for s in self.states for t in self.stages),name="demand-balance")
+            scenModel.addConstrs((x.sum(t,s,'*')-y[t,s]<=0 for s in self.states for t in self.stages),name="max-flow") 
+            scenModel.addConstrs((x[t,s1,s2]==self.mvm_x[t,s1,s2] for t in self.stages for s1 in self.states for s2 in self.states),name='fix-x')
+            scenModel.addConstrs((u[t,s]==self.mvm_u[t,s] for t in self.stages for s in self.states),name='fix-u')
+            scenModel.setParam(GRB.Param.LogToConsole,0)
+            scenModel.update()
+            scenModel.optimize()
+            self.vssScen.append(scenModel.objVal-self.lb[self.maxiter])
+        print('VSS is ', np.mean(self.vssScen))            
+        print('VSS percentage is ', round(100*np.mean(self.vssScen)/self.lb[self.maxiter],2))         
+        
 if __name__=='__main__':
     data=vent_data()
     data.gen_data()
     model=mssp(data,200);
+    start=time.time()
     model.execute_sddp()
-    #model.solvePI()
+    end=time.time()
+    print('Time for SDDP: ',end-start)
     model.plotBoundsSDDP()
-    #model.cal_EVPI()
+    model.VSS()
+    
